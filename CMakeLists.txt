@@ -404,6 +404,9 @@ if(LEVELDB_BUILD_TESTS)
   endif(NOT BUILD_SHARED_LIBS)
 endif(LEVELDB_BUILD_TESTS)
 
+leveldb_test("test/db_test_block_size_test.cc")
+leveldb_test("test/db_test_read_ldb_file.cc")
+
 if(LEVELDB_BUILD_BENCHMARKS)
   # This project uses Google benchmark for benchmarking.
   set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
