@@ -596,8 +596,10 @@ void DBImpl::CompactRange(const Slice* begin, const Slice* end) {
   }
 }
 
-void DBImpl::TEST_CompactRange(int level, const Slice* begin,
-                               const Slice* end) {
+void DBImpl::TEST_CompactRange(int level,
+                               const Slice* begin,
+                               const Slice* end)
+{
   assert(level >= 0);
   assert(level + 1 < config::kNumLevels);
 

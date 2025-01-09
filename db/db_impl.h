@@ -133,11 +133,20 @@ class DBImpl : public DB {
 
   /// @brief 手动压缩的信息。
   struct ManualCompaction {
-    int level;                  ///< 压缩的层级。
-    bool done;                  ///< 压缩是否完成。
-    const InternalKey* begin;   ///< 压缩的起始键，null 表示键范围的开始。
-    const InternalKey* end;     ///< 压缩的结束键，null 表示键范围的结束。
-    InternalKey tmp_storage;    ///< 用于跟踪压缩进度。
+    /// @brief 压缩的层级。
+    int level;
+
+    /// @brief 压缩是否完成。
+    bool done;
+
+    /// @brief 压缩的起始键，null 表示键范围的开始。
+    const InternalKey* begin;
+
+    /// @brief 压缩的结束键，null 表示键范围的结束。
+    const InternalKey* end;
+
+    /// @brief 用于跟踪压缩进度。
+    InternalKey tmp_storage;
   };
 
   /// @brief 每个层级的压缩统计信息。
@@ -153,9 +162,14 @@ class DBImpl : public DB {
       this->bytes_written += c.bytes_written;
     }
 
-    int64_t micros;        ///< 压缩耗时（微秒）。
-    int64_t bytes_read;    ///< 读取的字节数。
-    int64_t bytes_written; ///< 写入的字节数。
+    /// @brief 压缩耗时（微秒）。
+    int64_t micros;
+
+    /// @brief 读取的字节数。
+    int64_t bytes_read;
+
+    /// @brief 写入的字节数。
+    int64_t bytes_written;
   };
 
   /// @brief 创建一个内部迭代器，用于遍历数据库的当前状态。
@@ -272,57 +286,99 @@ class DBImpl : public DB {
   }
 
   // 以下成员在构造后是常量
+  /// @brief 环境接口，用于文件系统和线程操作。
+  Env* const env_;
 
-  Env* const env_;                            ///< 环境接口，用于文件系统和线程操作。
-  const InternalKeyComparator internal_comparator_;  ///< 内部键比较器。
-  const InternalFilterPolicy internal_filter_policy_; ///< 内部过滤策略。
-  const Options options_;                     ///< 数据库选项。
-  const bool owns_info_log_;                  ///< 是否拥有 info_log_ 的所有权。
-  const bool owns_cache_;                     ///< 是否拥有 cache_ 的所有权。
-  const std::string dbname_;                  ///< 数据库名称。
+  /// @brief 内部键比较器。
+  const InternalKeyComparator internal_comparator_;  
+
+  /// @brief 内部过滤策略。
+  const InternalFilterPolicy internal_filter_policy_; 
+
+  /// @brief 数据库选项。
+  const Options options_;
+
+  /// @brief 是否拥有 info_log_ 的所有权。
+  const bool owns_info_log_;
+
+  /// @brief 是否拥有 cache_ 的所有权。
+  const bool owns_cache_;
+
+  /// @brief 数据库名称。
+  const std::string dbname_;
 
   // table_cache_ 提供自己的同步机制
-  TableCache* const table_cache_;             ///< 表缓存，用于管理打开的 SST 文件。
+  /// @brief 表缓存，用于管理打开的 SST 文件。
+  TableCache* const table_cache_;
 
   // 保护持久化数据库状态的锁。如果成功获取，则非空。
+  /// @brief 用于保护持久化数据库状态的锁，成功获取时非空。
   FileLock* db_lock_;
 
   // 以下状态由 mutex_ 保护
 
-  port::Mutex mutex_;                         ///< 互斥锁，用于保护共享状态。
-  std::atomic<bool> shutting_down_;           ///< 数据库是否正在关闭。
-  port::CondVar background_work_finished_signal_ GUARDED_BY(mutex_); ///< 后台工作完成信号。
-  MemTable* mem_;                             ///< 当前的 MemTable。
-  MemTable* imm_ GUARDED_BY(mutex_);          ///< 正在被压缩的 MemTable。
-  std::atomic<bool> has_imm_;                 ///< 用于后台线程检测非空的 imm_。
-  WritableFile* logfile_;                     ///< 当前的日志文件。
-  uint64_t logfile_number_ GUARDED_BY(mutex_); ///< 日志文件编号。
-  log::Writer* log_;                          ///< 日志写入器。
-  uint32_t seed_ GUARDED_BY(mutex_);          ///< 用于采样。
+  /// @brief 互斥锁，用于保护共享状态。
+  port::Mutex mutex_;
+
+  /// @brief 数据库是否正在关闭。
+  std::atomic<bool> shutting_down_;
+
+  /// @brief 后台工作完成信号，由 mutex_ 保护。
+  port::CondVar background_work_finished_signal_ GUARDED_BY(mutex_); 
+
+  /// @brief 当前的 MemTable。
+  MemTable* mem_;
+
+  /// @brief 正在被压缩的 MemTable，由 mutex_ 保护。
+  MemTable* imm_ GUARDED_BY(mutex_);
+
+  /// @brief 用于后台线程检测非空的 imm_。
+  std::atomic<bool> has_imm_;
+
+  /// @brief 当前的日志文件。
+  WritableFile* logfile_;
+
+  /// @brief 日志文件编号，由 mutex_ 保护。
+  uint64_t logfile_number_ GUARDED_BY(mutex_);
+
+  /// @brief 日志写入器。
+  log::Writer* log_;
+ 
+  /// @brief 用于采样，由 mutex_ 保护。
+  uint32_t seed_ GUARDED_BY(mutex_);
 
   // 写入者队列。
+  /// @brief 写入者队列，由 mutex_ 保护。
   std::deque<Writer*> writers_ GUARDED_BY(mutex_);
+
+  /// @brief 临时的 WriteBatch，由 mutex_ 保护。
   WriteBatch* tmp_batch_ GUARDED_BY(mutex_);
 
   // 快照列表。
+  /// @brief 快照列表，由 mutex_ 保护。
   SnapshotList snapshots_ GUARDED_BY(mutex_);
 
   // 由于正在进行压缩而需要保护的文件集合。
+  /// @brief 由于正在进行压缩而需要保护的文件集合，由 mutex_ 保护。
   std::set<uint64_t> pending_outputs_ GUARDED_BY(mutex_);
 
   // 是否已调度或正在运行后台压缩任务？
+  /// @brief 是否已调度或正在运行后台压缩任务，由 mutex_ 保护。
   bool background_compaction_scheduled_ GUARDED_BY(mutex_);
 
   // 手动压缩任务。
+  /// @brief 手动压缩任务，由 mutex_ 保护。
   ManualCompaction* manual_compaction_ GUARDED_BY(mutex_);
 
   // 版本集合。
+  /// @brief 版本集合，由 mutex_ 保护。
   VersionSet* const versions_ GUARDED_BY(mutex_);
 
-  /// @brief 在 paranoid 模式下是否遇到了后台错误？
+  /// @brief 在 paranoid 模式下是否遇到了后台错误？由 mutex_ 保护。
   Status bg_error_ GUARDED_BY(mutex_);
 
   // 每个层级的压缩统计信息。
+  /// @brief 每个层级的压缩统计信息，由 mutex_ 保护。
   CompactionStats stats_[config::kNumLevels] GUARDED_BY(mutex_);
 };
 
