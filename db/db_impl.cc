@@ -11,6 +11,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <assert.h>
 
 #include "db/builder.h"
 #include "db/db_iter.h"
@@ -97,6 +98,8 @@ Options SanitizeOptions(const std::string& dbname,
                         const Options& src) {
   Options result = src;
   result.comparator = icmp;
+
+  // 这里之所用ipolicy是因为在这里的ipoilcy是就是通过options src生成的
   result.filter_policy = (src.filter_policy != nullptr) ? ipolicy : nullptr;
   ClipToRange(&result.max_open_files, 64 + kNumNonTableCacheFiles, 50000);
   ClipToRange(&result.write_buffer_size, 64 << 10, 1 << 30);
@@ -125,8 +128,15 @@ static int TableCacheSize(const Options& sanitized_options) {
 
 DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
     : env_(raw_options.env),
+      // 如果options中没有设置comparator，则使用BytewiseComparator
+      // 会在options的构造函数中设置ByteWiseComparator
+      // 所以这里不会为空
       internal_comparator_(raw_options.comparator),
+      // 如果options中没有设置filter_policy，则使用nullptr
+      // internal_filter_policy_里面的指针就是nullptr
       internal_filter_policy_(raw_options.filter_policy),
+
+      // 这里的internal_filter_policy_是就是通过Option生成的
       options_(SanitizeOptions(dbname, &internal_comparator_,
                                &internal_filter_policy_, raw_options)),
       owns_info_log_(options_.info_log != raw_options.info_log),
@@ -147,7 +157,9 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       background_compaction_scheduled_(false),
       manual_compaction_(nullptr),
       versions_(new VersionSet(dbname_, &options_, table_cache_,
-                               &internal_comparator_)) {}
+                               &internal_comparator_)) {
+          assert(raw_options.filter_policy == nullptr);
+      }
 
 DBImpl::~DBImpl() {
   // Wait for background work to finish.

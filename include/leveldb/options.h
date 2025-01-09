@@ -39,6 +39,8 @@ struct LEVELDB_EXPORT Options {
   // 默认：使用字典序字节顺序的比较器
   //
   // 要求：客户端必须确保此处提供的比较器与之前对同一数据库的打开调用中提供的比较器具有相同的名称和键顺序。
+  // 构造函数中会使用 BytewiseComparator() 作为默认值。
+  // comparator(BytewiseComparator()), env(Env::Default()) {}
   const Comparator* comparator;
 
   // 如果为 true，当数据库缺失时会创建数据库。
@@ -53,6 +55,8 @@ struct LEVELDB_EXPORT Options {
 
   // 使用指定的对象与环境交互，例如读写文件、调度后台工作等。
   // 默认：Env::Default()
+  // 构造函数中会使用 Env::Default() 作为默认值。
+  // comparator(BytewiseComparator()), env(Env::Default()) {}
   Env* env;
 
   // 任何由数据库生成的内部进度/错误信息将被写入 info_log（如果非空），

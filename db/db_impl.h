@@ -290,10 +290,10 @@ class DBImpl : public DB {
   Env* const env_;
 
   /// @brief 内部键比较器。
-  const InternalKeyComparator internal_comparator_;  
+  const InternalKeyComparator internal_comparator_;
 
   /// @brief 内部过滤策略。
-  const InternalFilterPolicy internal_filter_policy_; 
+  const InternalFilterPolicy internal_filter_policy_;
 
   /// @brief 数据库选项。
   const Options options_;
