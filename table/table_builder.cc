@@ -18,6 +18,16 @@
 
 namespace leveldb {
 
+/// @brief TableBuilder 的实现类。
+/// TableBuilder::Rep 是 LevelDB 中 TableBuilder 类的内部实现类（Pimpl 设计模式），
+/// 用于封装 SST（Sorted String Table）文件的构建逻辑。
+/// TableBuilder 是 LevelDB 中用于将键值对数据写入 SST 文件的核心组件，
+/// 而 TableBuilder::Rep 则是其内部实现细节的封装。
+///
+/// @note piml 设计模式
+/// Pimpl（Pointer to Implementation） 是一种 C++ 设计模式，用于隐藏类的实现细节，
+/// 从而减少编译依赖、提高封装性，并改善编译速度。Pimpl 的核心思想是将类的实现细节
+///（私有成员变量和方法）移动到一个单独的类中，并通过指针来访问这些细节。
 struct TableBuilder::Rep {
   Rep(const Options& opt, WritableFile* f)
       : options(opt),
