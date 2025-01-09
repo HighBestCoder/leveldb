@@ -158,7 +158,6 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       manual_compaction_(nullptr),
       versions_(new VersionSet(dbname_, &options_, table_cache_,
                                &internal_comparator_)) {
-          assert(raw_options.filter_policy == nullptr);
       }
 
 DBImpl::~DBImpl() {
