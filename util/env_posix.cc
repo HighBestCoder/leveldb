@@ -49,7 +49,36 @@ constexpr const int kDefaultMmapLimit = (sizeof(void*) >= 8) ? 1000 : 0;
 // Can be set using EnvPosixTestHelper::SetReadOnlyMMapLimit().
 int g_mmap_limit = kDefaultMmapLimit;
 
-// Common flags defined for all posix open operations
+/// @brief 限制资源使用，避免资源耗尽。
+/// `HAVE_O_CLOEXEC` 是一个宏定义，通常用于条件编译，表示当前系统是否支持 `O_CLOEXEC` 标志。它的作用是控制代码在不同平台或环境下的编译行为。
+///
+/// ---
+///
+/// ### 1. **`O_CLOEXEC` 的作用**
+/// `O_CLOEXEC` 是一个文件描述符标志，用于在打开文件时设置 **close-on-exec** 行为。具体来说：
+/// - 当一个进程使用 `fork()` 创建子进程，并通过 `exec()` 执行新程序时，子进程会继承父进程打开的文件描述符。
+/// - 如果文件描述符设置了 `O_CLOEXEC` 标志，那么在 `exec()` 调用时，该文件描述符会自动关闭，避免子进程意外访问父进程的文件。
+///
+/// 这种方式可以避免资源泄漏，并提高程序的安全性。
+/// 
+/// ---
+///
+/// ### 2. **`HAVE_O_CLOEXEC` 的作用**
+/// `HAVE_O_CLOEXEC` 是一个条件编译宏，用于检测当前系统是否支持 `O_CLOEXEC` 标志。它的定义通常由构建系统（如 Autotools、CMake 等）或编译器根据目标平台自动生成。
+///
+/// #### 示例代码：
+/// ```c
+/// #ifdef HAVE_O_CLOEXEC
+///     int fd = open("file.txt", O_RDWR | O_CLOEXEC);
+/// #else
+///     int fd = open("file.txt", O_RDWR);
+///     fcntl(fd, F_SETFD, FD_CLOEXEC); // 手动设置 close-on-exec
+/// #endif
+/// ```
+///
+/// - 如果系统支持 `O_CLOEXEC`，则直接使用 `O_CLOEXEC` 标志打开文件。
+/// - 如果系统不支持 `O_CLOEXEC`，则使用 `fcntl(fd, F_SETFD, FD_CLOEXEC)` 手动设置 close-on-exec 行为。
+///
 #if defined(HAVE_O_CLOEXEC)
 constexpr const int kOpenBaseFlags = O_CLOEXEC;
 #else
@@ -714,6 +743,16 @@ class PosixEnv : public Env {
     return Status::OK();
   }
 
+  /// @brief 打开日志文件
+  /// @note LevelDB 在打开日志文件时，先使用 `::open` 获取文件描述符，再使用 `::fdopen` 将其转换为 `FILE*` 流指针。
+  ///       这种设计的原因包括：
+  ///       1. **精细控制文件打开方式**：`::open` 提供了对文件打开方式的精细控制（例如 `O_APPEND`、`O_WRONLY`、`O_CREAT` 等标志）。
+  ///       2. **简化 I/O 操作**：`::fdopen` 将文件描述符转换为 `FILE*` 流指针，可以使用标准库的 I/O 函数（如 `fprintf`、`fwrite`），简化代码逻辑。
+  ///       3. **提高性能**：标准库的 `FILE*` 流通常带有缓冲区，可以减少系统调用次数，提高写入效率。
+  ///       4. **兼容性**：标准库的 I/O 函数具有良好的跨平台兼容性，确保代码在不同平台上的一致性。
+  /// @param filename 日志文件的路径
+  /// @param result 输出参数，用于返回创建的日志记录器对象
+  /// @return 返回操作状态，成功时返回 `Status::OK()`，失败时返回错误信息
   Status NewLogger(const std::string& filename, Logger** result) override {
     int fd = ::open(filename.c_str(),
                     O_APPEND | O_WRONLY | O_CREAT | kOpenBaseFlags, 0644);

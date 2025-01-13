@@ -92,11 +92,22 @@ static void ClipToRange(T* ptr, V minvalue, V maxvalue) {
   if (static_cast<V>(*ptr) > maxvalue) *ptr = maxvalue;
   if (static_cast<V>(*ptr) < minvalue) *ptr = minvalue;
 }
+
+/// @brief 规范化数据库选项。
+/// @param dbname 数据库名称。
+/// @param icmp 比较器
+/// @param ipolicy 过滤策略。
+/// @param src 客户端提供的源选项。
+/// @return 返回规范化后的选项。
 Options SanitizeOptions(const std::string& dbname,
                         const InternalKeyComparator* icmp,
                         const InternalFilterPolicy* ipolicy,
-                        const Options& src) {
+                        const Options& src)
+{
+  // 从src中拷贝一份options
   Options result = src;
+
+  // 强制使用icmp
   result.comparator = icmp;
 
   // 这里之所用ipolicy是因为在这里的ipoilcy是就是通过options src生成的
@@ -106,9 +117,12 @@ Options SanitizeOptions(const std::string& dbname,
   ClipToRange(&result.write_buffer_size, 64 << 10, 1 << 30);
   ClipToRange(&result.max_file_size, 1 << 20, 1 << 30);
   ClipToRange(&result.block_size, 1 << 10, 4 << 20);
+
+  // 如果没有设置info_log，则创建一个
   if (result.info_log == nullptr) {
-    // Open a log file in the same directory as the db
-    src.env->CreateDir(dbname);  // In case it does not exist
+    // 先创建目录
+    src.env->CreateDir(dbname);
+    // 把旧有的文件重命名
     src.env->RenameFile(InfoLogFileName(dbname), OldInfoLogFileName(dbname));
     Status s = src.env->NewLogger(InfoLogFileName(dbname), &result.info_log);
     if (!s.ok()) {
@@ -136,6 +150,8 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 
       // 如果options中没有设置filter_policy，则使用nullptr
       // internal_filter_policy_里面的指针就是nullptr
+      // 注意，如果这个变量非空的话，它的生命周期是client申请的。然后
+      // 这个过滤器也会由client来释放
       internal_filter_policy_(raw_options.filter_policy),
 
       // 这里的internal_filter_policy_是就是通过Option生成的
